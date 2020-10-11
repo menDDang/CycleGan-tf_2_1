@@ -1,1 +1,7 @@
+data:
+  input_height: 256
+  input_width: 256
+  input_channel_num: 3
+  
+
 model:

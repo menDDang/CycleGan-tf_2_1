@@ -3,3 +3,5 @@
 .vscode/*
 
 # ignore dataset
+datasets
+datasets/*
