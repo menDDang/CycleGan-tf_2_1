@@ -1,11 +1,10 @@
 import tensorflow as tf
-from modules import Conv2D, ResidualConv2D, InstanceNormalization
-
+import modules
 
 class ResnetGenerator(tf.keras.layers.Layer):
     def __init__(self,
                 num_filters,
-                norm_layer=InstanceNormalization,
+                norm_layer=modules.InstanceNorm2D,
                 resnet_block_num=6,
                 pad_type='REFLECT',
                 **kwargs):
@@ -28,71 +27,39 @@ class ResnetGenerator(tf.keras.layers.Layer):
         self.resnet_block_num = resnet_block_num
         self.pad_type = pad_type
 
+        
         # Build network for down-sampling
         self.down_sampling = tf.keras.Sequential(name='downsampling')
         self.down_sampling.add(
-            Conv2D(
-                filters=self.num_filters,
-                kernel_size=[7, 7],
-                strides=2,
-                pad_type=self.pad_type,
-                padding='SAME',
-                dtype=self.dtype,
-                name='conv_1'
-            )
+            # reflect padding (3)
+            modules.Conv2D(filters=self.num_filters, kernel_size=[7, 7], strides=2, padding='NONE')
         )
-        
-        self.down_sampling.add(self.norm_layer(dtype=self.dtype, name='norm_1'))
-        self.down_sampling.add(tf.keras.layers.ReLU(name='relu_1'))
-        # conv-2
-        self.down_sampling.add(
-            Conv2D(
-                filters=self.num_filters * 2,
-                kernel_size=[3, 3],
-                strides=2,
-                pad_type=self.pad_type,
-                padding='SAME',
-                dtype=self.dtype,
-                name='conv_2'
-            )
-        )
-        self.down_sampling.add(tf.keras.layers.ReLU(name='relu_2'))
-        # conv-3
-        self.down_sampling.add(
-            Conv2D(
-                filters=self.num_filters * 4,
-                kernel_size=[3, 3],
-                strides=2,
-                pad_type=self.pad_type,
-                padding='SAME',
-                dtype=self.dtype,
-                name='conv_3'
-            )
-        )
-        self.down_sampling.add(tf.keras.layers.ReLU(name='relu_3'))
+        self.down_sampling.add(modules.InstanceNorm2D())
+        self.down_sampling.add(tf.keras.layers.ReLU())
 
-        
-        # Build network for residual convolutional blocks
-        self.resnet = tf.keras.Sequential(name='resnet')
-        for i in range(self.resnet_block_num):
-            self.resnet.add(
-                ResidualConv2D(
-                    kernel_size=[3, 3],
-                    strides=2,
-                    pad_type=self.pad_type,
-                    padding='SAME',
-                    dtype=self.dtype,
-                    name='resnet_' + str(i + 1)
-                )
+        num_downsampling = 2
+        for i in range(num_downsampling):
+            mult = 2 ** i
+            # zero padding (1)
+            self.down_sampling.add(
+                modules.Conv2D(self.num_filters * mult, kernel_size = [3, 3], strides=2, padding='NONE')
             )
-            self.resnet.add(tf.keras.layers.ReLU(name='relu_'+str(i + 1)))
-
-
-        # Build network for up-sampling
-        self.upsampling = tf.keras.Sequential(name='upsampling')
-        
+            self.down_sampling.add(modules.InstanceNorm2D())
+            self.down_sampling.add(tf.keras.layers.ReLU())        
 
     def call(self, x, training=True):
         x = self.down_sampling(x, training=True)
-        x = self.resnet(x)
         return x
+
+
+if __name__ == "__main__": 
+    batch_size = 1
+    input_height = 256
+    input_width = 256
+    input_channels = 3
+
+    generator = ResnetGenerator(64)
+
+    x = tf.zeros(shape=[batch_size, input_height, input_width, input_channels], dtype=tf.float32)
+    x = generator(x)
+    print(x.shape)

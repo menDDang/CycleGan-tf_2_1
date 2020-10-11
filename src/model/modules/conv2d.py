@@ -18,7 +18,7 @@ class Conv2D(tf.keras.layers.Layer):
         assert(filters > 0)
         assert(len(kernel_size) == 2)
         assert(strides >= 1)
-        assert(padding in ['VALID', 'SAME'])
+        assert(padding in ['VALID', 'SAME', 'NONE'])
         assert(pad_type in ['ZEROS', 'REFLECT', 'SYMMETRIC'])
 
         super(Conv2D, self).__init__(**kwargs)
@@ -76,7 +76,7 @@ class Conv2D(tf.keras.layers.Layer):
                 pw_right = int(pad_width / 2) + 1
             self.padding_size = [[0, 0], [ph_left, ph_right], [pw_left, pw_right], [0, 0]]
         
-        else:
+        elif self.padding == 'VALID':
             # (IH + (PH_left + PH_right) - KH) % SH = 0
             # -> (IH + (PH_left + PH_right) - KH) = SH * k for some positive integer k
             # -> PH_left + PH_right = SH * k + KH - IH
@@ -107,10 +107,11 @@ class Conv2D(tf.keras.layers.Layer):
 
     def call(self, x):
         # Pad
-        if self.pad_type == 'ZEROS':
-            x = tf.pad(x, self.padding_size, mode='CONSTANT', constant_values=0, name='padding')
-        else:
-            x = tf.pad(x, self.padding_size, mode=self.pad_type, name='padding')
+        if self.padding != 'NONE':
+            if self.pad_type == 'ZEROS':
+                x = tf.pad(x, self.padding_size, mode='CONSTANT', constant_values=0, name='padding')
+            else:
+                x = tf.pad(x, self.padding_size, mode=self.pad_type, name='padding')
        
         # Convolution
         x = tf.nn.conv2d(x, self.kernel, strides=self.strides, padding=[[0, 0], [0, 0], [0, 0], [0, 0]], data_format='NHWC', name='conv_out')

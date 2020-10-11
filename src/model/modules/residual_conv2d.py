@@ -23,7 +23,7 @@ class ResidualConv2D(tf.keras.layers.Layer):
 
     def build(self, input_shapes):
         # Get shape of inputs
-        _, input_height, input_width, input_channel_num = input_shapes
+        _, _, _, input_channel_num = input_shapes  # [batch, input height, input width, input channels]
 
         
         # Set convolution layer
