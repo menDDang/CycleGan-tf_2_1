@@ -1,0 +1,5 @@
+# ignore files for vscode
+.vscode
+.vscode/*
+
+# ignore dataset
